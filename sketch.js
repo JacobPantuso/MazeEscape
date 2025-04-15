@@ -23,8 +23,12 @@ let selectedLevel = 0;
 let overlay;
 let overlayGfx;
 let scoreFont, titleFont, regularFont, regularFont2, otherFont;
+let imgBackground;
 
 function preload() {
+  imgBackground = loadImage("img/bg.jpg", () => {
+    imgBackground.resize(width, height);
+  });
   playerImg = loadImage("img/player.png");
   playerImgFlash = loadImage("img/flashlight_player.png");
   tileFloor = loadImage("img/floor_model.jpg", () => {
@@ -77,6 +81,9 @@ function draw() {
   if (gameState === "title") {
     drawTitleScreen();
   } else if (gameState === "select") {
+    if (kb.pressed("b")) {
+      gameState = "title";
+    }
     drawSelectScreen();
   } else if (gameState === "play") {
     for (let i = 0; i < wallGroup.length; i++) {
@@ -120,7 +127,7 @@ function drawPauseScreen() {
 
 
 function drawTitleScreen() {
-  background(30);
+  background(imgBackground);
   textAlign(CENTER, CENTER);
   textSize(68);
   fill(255);
@@ -129,6 +136,17 @@ function drawTitleScreen() {
   textSize(36);
   textFont(regularFont);
   text("Click anywhere to start", width / 2, height / 2 + 40);
+
+  // how to play
+  textSize(26);
+  textFont(regularFont2);
+  fill(255);
+  text("How to play:", width / 2, height / 2 + 100);
+  textSize(20);
+  textFont(regularFont2);
+  text("Use WASD or Arrow keys to move", width / 2, height / 2 + 130);
+  text("Reach the exit to complete the level, hidden items give you extra score!", width / 2, height / 2 + 160);
+  text("Press ESC to pause the game", width / 2, height / 2 + 190);
 }
 
 /**
@@ -137,7 +155,7 @@ function drawTitleScreen() {
  * Levels are colored based on their completion status.
  */
 function drawSelectScreen() {
-  background(50);
+  background(imgBackground);
   textAlign(CENTER, CENTER);
   textSize(48);
   textFont(otherFont)
@@ -161,6 +179,13 @@ function drawSelectScreen() {
 
     text(levelText, width / 2, 170 + i * 50);
   }
+
+  fill("white")
+  text("Press", width / 2 - 140, height - 100);
+  fill("orange"); 
+  text("B", (width / 2) - 77,height - 100);
+  fill(255);
+  text("to return to start.", (width / 2) + 70, height - 100);
 }
 
 function mousePressed() {
@@ -168,7 +193,7 @@ function mousePressed() {
     gameState = "select";
   } else if (gameState === "select") {
     for (let i = 1; i <= 5; i++) {
-      if (mouseY > 100 + i * 50 - 20 && mouseY < 100 + i * 50 + 20) {
+      if (mouseY > 150 + i * 50 - 20 && mouseY < 150 + i * 50 + 20) {
         let levelProgress = JSON.parse(localStorage.getItem("progress"));
 
         if (i === 1 || levelProgress[i - 2]?.completed) {
@@ -262,7 +287,7 @@ function runGame() {
     if (typeof floorGroup !== "undefined") floorGroup.removeAll();
     if (exitSprite) exitSprite.remove();
     if (player) player.remove();
-
+    overlay.visible = false;
     gameState = "select";
   }
 }
