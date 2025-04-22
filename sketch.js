@@ -1,4 +1,4 @@
-/**
+ /**
  * MazeEscape
  * A simple maze game where the player navigates through a maze to reach the exit. Levels
  * become progressively harder as the player advances (randomly generated). Detailed comments
@@ -7,7 +7,8 @@
  * Designed and Coded by Giancarlo Evacula, Jacob Pantuso, and Alexander Stan
  * 
  */
-
+let highestScore = 0;
+let currentScore = 0;
 let gameState = "title";
 let wallTexture;
 let exitImg;
@@ -23,6 +24,8 @@ let selectedLevel = 0;
 let overlay;
 let overlayGfx;
 let scoreFont, titleFont, regularFont, regularFont2, otherFont;
+let coinImg;
+let hiddenItems = [];
 let imgBackground;
 
 function preload() {
@@ -45,6 +48,9 @@ function preload() {
   regularFont = loadFont("typeface/enchantedLand.otf");
   regularFont2 = loadFont("typeface/psg.ttf");
   otherFont = loadFont("typeface/brokenDetroit.ttf");
+  coinImg = loadImage("img/item.png", () => {
+    coinImg.resize(32, 32);
+  });
 }
 
 function setup() {
@@ -63,6 +69,10 @@ function setup() {
   overlay.img = overlayGfx;
   overlay.visible = false;
   angleMode(degrees);
+
+  if (localStorage.getItem("highestScore") !== null) {
+    highestScore = parseInt(localStorage.getItem("highestScore"));
+  }
   
   if (localStorage.getItem("progress") === null) {
     localStorage.setItem("progress", JSON.stringify([
@@ -136,7 +146,7 @@ function drawTitleScreen() {
   textSize(36);
   textFont(regularFont);
   text("Click anywhere to start", width / 2, height / 2 + 40);
-
+  
   // how to play
   textSize(26);
   textFont(regularFont2);
@@ -161,6 +171,9 @@ function drawSelectScreen() {
   textFont(otherFont)
   fill(255);
   text("Select a Level", width / 2, 150);
+  textSize(36);
+  textFont(regularFont);
+  text("Highest Score:   " + highestScore, width / 2, 100);
 
   textSize(36);
   textFont(regularFont2);
@@ -201,7 +214,8 @@ function mousePressed() {
           wallGroup.removeAll();
           if (exitSprite) exitSprite.remove();
           if (player) player.remove();
-
+          if (hiddenItems) hiddenItems.forEach(item => item.remove());
+          if (hiddenItems) hiddenItems = [];
           loadRandomMazeLevel(15, 10);
         
           gameState = "play";
@@ -241,10 +255,11 @@ function runGame() {
   camera.x = player.x;
   camera.y = player.y;
   camera.zoom = 2.5;
-  
+
   if (selectedLevel > 1 && gameState !== "paused") {
     updateOverlayFlashlight();
     overlay.visible = true;
+    overlay.layer = 3;
     overlay.x = player.x;
     overlay.y = player.y;
   }
@@ -277,12 +292,25 @@ function runGame() {
     gameState = (gameState === "paused") ? "play" : "paused";
   }
 
+  if (gameState !== "paused") {
+    hiddenItems.forEach(item => {
+      if (player.overlaps(item)) {
+        item.remove();
+        currentScore += Math.floor(Math.random() * 100) + 1; 
+        item.remove();
+      }
+    });
+    if (currentScore > highestScore) {
+      highestScore = currentScore;
+      localStorage.setItem("highestScore", highestScore);
+    }
+  }
+
   // Only check for win if not paused
   if (gameState !== "paused" && player.overlaps(exitSprite)) {
     let levelProgress = JSON.parse(localStorage.getItem("progress"));
     levelProgress[selectedLevel - 1].completed = true;
     localStorage.setItem("progress", JSON.stringify(levelProgress));
-
     wallGroup.removeAll();
     if (typeof floorGroup !== "undefined") floorGroup.removeAll();
     if (exitSprite) exitSprite.remove();
@@ -326,7 +354,23 @@ function loadRandomMazeLevel(cols, rows) {
         floor.collider = "none";
         floor.img = tileFloor;
         floor.layer = 1;
+        }
       }
+    }
+
+  for (let i = 0; i < 5; i++) {
+    let x = Math.floor(Math.random() * cols) * 2 + 1;
+    let y = Math.floor(Math.random() * rows) * 2 + 1;
+    if (maze[y][x] === ".") {
+      let hiddenItem = new wallGroup.Sprite();
+      hiddenItem.x = x * tileSize + tileSize / 2;
+      hiddenItem.y = y * tileSize + tileSize / 2;
+      hiddenItem.w = tileSize;
+      hiddenItem.h = tileSize;
+      hiddenItem.layer = 1;
+      hiddenItem.collider = "none";
+      hiddenItem.img = coinImg;
+      hiddenItems.push(hiddenItem);
     }
   }
 
@@ -341,6 +385,7 @@ function loadRandomMazeLevel(cols, rows) {
   exitSprite.label = "exit";
 
   createPlayer(tileSize * 1.5, tileSize * 1.5);
+  
 }
 
 /**
@@ -363,6 +408,7 @@ function createPlayer(x, y) {
   player.h = tileSize * 0.9;
   player.collider = "dynamic";
   player.rotationLock = true;
+  
 }
 
 /**
